@@ -3,6 +3,8 @@
 //CONSIDER NAMES AND ORDER OF FUNCTIONS,
 //RMEMBER TO CHANGE PASSWORD WHEN UPLOADING
 
+/************************     GET FUNCTIONALITY IN DELETE AND ADD EMPLOYEE FUNCTIONS      ***********************/
+
 
 const inquirer = require("inquirer");
 const mysql = require("mysql");
@@ -43,21 +45,21 @@ function promptUser() {
     })
     .then(function(answer) {
         if(answer.action === "View Employees") { 
-            viewEmployees();
+            view("employee");
         } else if(answer.action === "View Roles") {
-            viewRoles();
+            view("role");
         } else if(answer.action === "View Departments") {
-            viewDepartments();
+            view("department");
         } else if(answer.action === "Add Employees") {
             addEmployees();
         } else if(answer.action === "Add Roles") {
-            addRole();
+            employeePrompt();
         } else if(answer.action === "Add Departments") {
             console.log("add department");
         } else if(answer.action === "UPDATE") {
             console.log("update: Departments, roles or employees");
         } else if(answer.action === "DELETE") {
-            console.log("delete: Departments, roles or employees");
+            deleteEmployees();
         } else if(answer.action === "Exit Program") {
             connection.end();
         }
@@ -65,29 +67,9 @@ function promptUser() {
 
 };
 
-//View employees
-function viewEmployees() {
-    let query = "SELECT * FROM employee";
-    connection.query(query, function(err, response) {
-        if (err) throw err;
-            console.table(response);
-        promptUser();
-    });
-};
-
-//View roles
-function viewRoles() {
-    let query = "SELECT * FROM role";
-    connection.query(query, function(err, response) {
-        if (err) throw err;
-            console.table(response);
-        promptUser();
-    });
-};
-
-//View departments
-function viewDepartments() {
-    let query = "SELECT * FROM department";
+//View table
+function view(tableType) {
+    let query = "SELECT * FROM " + tableType;
     connection.query(query, function(err, response) {
         if (err) throw err;
             console.table(response);
@@ -100,8 +82,14 @@ async function addEmployees() {
     let firstName = await textPrompt("First Name:");
     let lastName = await textPrompt("Last Name:");
     let role = await rolePrompt("What role will this employee have?");
-    
+    let idReturned = await getRoleIdByName(role);
 
+    await connection.query("INSERT INTO employee SET ?", {
+        first_name: firstName,
+        last_name: lastName,
+        role_id: idReturned,
+        manager_id: null
+    })
     promptUser();
 };
 
@@ -110,20 +98,6 @@ async function addRole() {
     //inquirer decimal input for salary
     //inquirer list input for department
     //increment id
-
-    connection.query("SELECT title FROM role", function(err, response) {
-        if (err) throw err;
-            let titles = [];
-            for(let i = 0; i < response.length; i++) {
-                titles.push(response[i].title);
-            }
-            console.log(titles);
-            console.log(typeof titles);
-            // console.table(response);
-            // console.log(response.length);
-        promptUser();
-    });
-
 }
 
 async function addDepartment() {
@@ -136,6 +110,17 @@ async function updateRoles() {
     //inquirer prompt user to overwrite part of role that user wishes to change
 }
 
+//Delete employees
+async function deleteEmployees() {
+    let employee = await employeePrompt("What employee do you wish to remove?");
+    
+    await connection.query(`DELETE FROM employee WHERE last_name = ${employee}`, function(err, result) {
+        if (err) throw err;
+        console.log("Deleted employee");
+    })
+}
+
+
 
 
 // INQUIRER PROMPTS
@@ -147,6 +132,17 @@ function textPrompt(question) {
     });
 };
 
+async function employeePrompt(question) {
+    const allEmployeeNames = await getAllEmployeesByName();
+    let employeeName = await inquirer.prompt({
+        name: "value",
+        type: "list",
+        message: question,
+        choices: allEmployeeNames
+    })
+    return employeeName.value;
+}
+
 async function rolePrompt(question) {
     const allRoles = await getAllRoles();
     let role = await inquirer.prompt({
@@ -154,21 +150,51 @@ async function rolePrompt(question) {
         type: "list",
         message: question,
         choices: allRoles
-    });
+    })
+    return role.value;
 };
 
+
+//get functions
 function getAllRoles() {
-return new Promise(function(resolve, reject) {
-    connection.query("SELECT title FROM role", function(err, response) {
-        if (err) reject(err);
-        let titles = [];
-        for(let i = 0; i < response.length; i++) {
-            titles.push(response[i].title);
-        }
-        resolve(titles);
+    return new Promise(function (resolve, reject) {
+        connection.query("SELECT * FROM role", function (err, response) {
+            if (err) reject(err);
+            let selectionArr = [];
+            for (let i = 0; i < response.length; i++) {
+                selectionArr.push(response[i].title);
+            }
+            resolve(selectionArr);
+            console.log(selectionArr);
+        });
     });
-});
 };
 
+function getAllEmployeesByName() {
+    return new Promise(function (resolve, reject) {
+        connection.query("SELECT * FROM employee", function (err, response) {
+            if (err) reject(err);
+            let selectionArr = [];
+            for (let i = 0; i < response.length; i++) {
+                selectionArr.push(response[i].last_name);
+            }
+            resolve(selectionArr);
+            console.log(selectionArr);
+        });
+    });
+};
 
-
+function getRoleIdByName(givenTitle) {
+    return new Promise(function (resolve, reject) {
+        connection.query("SELECT * FROM role", function (err, response) {
+            if (err) reject(err);
+            let resolution
+            for (let i = 0; i < response.length; i++) {
+                if (response[i].title === givenTitle) {
+                    resolution = response[i].id;
+                };
+            };  
+            resolve(resolution);
+        });
+    })        
+};
