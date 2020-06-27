@@ -4,9 +4,7 @@ const table = require("console.table");
 
 const connection = mysql.createConnection({
     host: "localhost",
-
     port: 3306,
-
     user: "root",
     //CHANGE WHEN UPLOADING!!!
     password: "Hellothere123!",
@@ -30,7 +28,7 @@ function promptUser() {
             "Add Employees",
             "Add Roles",
             "Add Departments",
-            "UPDATE",
+            "Update Role",
             "Delete Employee",
             "Delete Role",
             "Delete Department",
@@ -39,25 +37,25 @@ function promptUser() {
     })
     .then(function(answer) {
         if(answer.action === "View Employees") { 
-            view("employee");//works
+            view("employee");
         } else if(answer.action === "View Roles") {
-            view("role");//works
+            view("role");
         } else if(answer.action === "View Departments") {
-            view("department");//works
+            view("department");
         } else if(answer.action === "Add Employees") {
-            addEmployees();//WORKS!
+            addEmployees();
         } else if(answer.action === "Add Roles") {
             addRole();
         } else if(answer.action === "Add Departments") {
-            addDepartment(); //works
-        } else if(answer.action === "UPDATE") {
-            console.log("update: Departments, roles or employees");
+            addDepartment();
+        } else if(answer.action === "Update Role") {
+            updateRoles();
         } else if(answer.action === "Delete Employee") {
-            deleteEmployees();//WORKS!
+            deleteEmployees();
         } else if(answer.action === "Delete Role") {
             deleteRole();
         } else if(answer.action === "Delete Department") {
-            deleteDepartment();//works
+            deleteDepartment();
         } else if(answer.action === "Exit Program") {
             connection.end();
         }
@@ -86,7 +84,6 @@ async function addEmployees() {
         if (err) res.status(500);
         console.log(result);
     });
-
     promptUser();
 };
 
@@ -96,13 +93,10 @@ async function addRole() {
     let dept = await departmentPrompt("Department for New Role:");
     let idReturned = await getDepartmentIdByName(dept);
 
-    console.log(roleName, salary, dept, idReturned);
-
     await connection.query("INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)", [roleName.value, salary.value, idReturned], (err, result) => {
         if (err) res.status(500);
         console.log(result);
     });
-    
     promptUser();
 }
 
@@ -117,9 +111,17 @@ async function addDepartment() {
 }
 
 async function updateRoles() {
-    //inquirer prompt a list of each part of current roles for user to select
-    //inquirer prompt user to overwrite part of role that user wishes to change
-}
+    let employee = await employeePrompt("Which employee role do you wish to update?");
+    let employeeIdReturned = await getEmployeeIdByName(employee);
+    let newRole = await rolePrompt("What will their new role be?");
+    let roleIdReturned = await getRoleIdByName(newRole);
+
+    await connection.query("UPDATE employee SET role_id = ? WHERE id = ?", [roleIdReturned, employeeIdReturned], (err, result) => {
+        if (err) res.status(500);
+        console.log(result)
+    });
+    promptUser();
+};
 
 /**************************DELETE FUNCTIONS******************************/
 async function deleteEmployees() {
@@ -264,7 +266,22 @@ function getDepartmentIdByName(givenDept) {
             resolve(resolution);
         });
     }); 
-}
+};
+
+function getEmployeeIdByName(givenName) {
+    return new Promise(function (resolve, reject) {
+        connection.query("SELECT * FROM employee", function (err, response) {
+            if (err) reject(err);
+            let resolution
+            for (let i = 0; i < response.length; i++) {
+                if (response[i].last_name === givenName) {
+                    resolution = response[i].id;
+                };
+            };  
+            resolve(resolution);
+        });
+    });       
+};
 
 function getRoleIdByName(givenTitle) {
     return new Promise(function (resolve, reject) {
