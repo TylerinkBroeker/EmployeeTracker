@@ -6,8 +6,7 @@ const connection = mysql.createConnection({
     host: "localhost",
     port: 3306,
     user: "root",
-    //CHANGE WHEN UPLOADING!!!
-    password: "Hellothere123!",
+    password: "",
     database: "company_DB"
 });
 
@@ -186,7 +185,7 @@ async function employeePrompt(question) {
         choices: allEmployeeNames
     });
     return employeeName.value;
-}
+};
 
 async function departmentPrompt(question) {
     const allDepartmentNames = await getAllDepartmentsByName();
@@ -195,9 +194,9 @@ async function departmentPrompt(question) {
         type: "list",
         message: question,
         choices: allDepartmentNames
-    })
+    });
     return departmentName.value;
-}
+};
 
 async function rolePrompt(question) {
     const allRoles = await getAllRoles();
@@ -206,7 +205,7 @@ async function rolePrompt(question) {
         type: "list",
         message: question,
         choices: allRoles
-    })
+    });
     return role.value;
 };
 
