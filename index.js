@@ -1,11 +1,3 @@
-//CONSIDER CHANGING NAMES OF SQL FILES
-//CONSIDER CHANGING NAMES OF DATABASES
-//CONSIDER NAMES AND ORDER OF FUNCTIONS,
-//RMEMBER TO CHANGE PASSWORD WHEN UPLOADING
-
-/************************     GET FUNCTIONALITY IN DELETE AND ADD EMPLOYEE FUNCTIONS      ***********************/
-
-
 const inquirer = require("inquirer");
 const mysql = require("mysql");
 const table = require("console.table");
@@ -39,27 +31,33 @@ function promptUser() {
             "Add Roles",
             "Add Departments",
             "UPDATE",
-            "DELETE",
+            "Delete Employee",
+            "Delete Role",
+            "Delete Department",
             "Exit Program"
         ]
     })
     .then(function(answer) {
         if(answer.action === "View Employees") { 
-            view("employee");
+            view("employee");//works
         } else if(answer.action === "View Roles") {
-            view("role");
+            view("role");//works
         } else if(answer.action === "View Departments") {
-            view("department");
+            view("department");//works
         } else if(answer.action === "Add Employees") {
-            addEmployees();
+            addEmployees();//WORKS!
         } else if(answer.action === "Add Roles") {
-            employeePrompt();
+            addRole();
         } else if(answer.action === "Add Departments") {
-            console.log("add department");
+            addDepartment();
         } else if(answer.action === "UPDATE") {
             console.log("update: Departments, roles or employees");
-        } else if(answer.action === "DELETE") {
-            deleteEmployees();
+        } else if(answer.action === "Delete Employee") {
+            deleteEmployees();//WORKS!
+        } else if(answer.action === "Delete Role") {
+            deleteRole();
+        } else if(answer.action === "Delete Department") {
+            deleteDepartment();
         } else if(answer.action === "Exit Program") {
             connection.end();
         }
@@ -75,7 +73,7 @@ function view(tableType) {
             console.table(response);
         promptUser();
     });
-};
+}; 
 
 //Add Employees
 async function addEmployees() {
@@ -84,25 +82,31 @@ async function addEmployees() {
     let role = await rolePrompt("What role will this employee have?");
     let idReturned = await getRoleIdByName(role);
 
-    await connection.query("INSERT INTO employee SET ?", {
-        first_name: firstName,
-        last_name: lastName,
-        role_id: idReturned,
-        manager_id: null
-    })
+    await connection.query("INSERT INTO employee (first_name, last_name, role_id) VALUES (?, ?, ?)", [firstName.value, lastName.value, idReturned], (err, result) => {
+        if (err) res.status(500);
+        console.log(result);
+    });
+
     promptUser();
 };
 
 async function addRole() {
-    //inquirer text input for title
-    //inquirer decimal input for salary
+    let roleName = await textPrompt("New Role Title:");
+    let salary = await numberPrompt("Salary for Role:")
+    
     //inquirer list input for department
-    //increment id
+    //add to table db
+    console.log(roleName, salary);
 }
 
 async function addDepartment() {
-    //inquirer text input for title
-    //increment id
+    let deptName = await textPrompt("New Department Title:");
+    
+    await connection.query("INSERT INTO department (name) VALUES (?)", [deptName.value], (err, result) => {
+        if (err) res.status(500);
+        console.log(result);
+    });
+    promptUser();
 }
 
 async function updateRoles() {
@@ -113,22 +117,50 @@ async function updateRoles() {
 //Delete employees
 async function deleteEmployees() {
     let employee = await employeePrompt("What employee do you wish to remove?");
-    
-    await connection.query(`DELETE FROM employee WHERE last_name = ${employee}`, function(err, result) {
+    //maybe get employee by id, i had more luck deleting by id
+    console.log(employee);
+    await connection.query(`DELETE FROM employee WHERE last_name = ?`, [employee], function(err, result) {
         if (err) throw err;
         console.log("Deleted employee");
-    })
+    });
+    promptUser();
+};
+
+async function deleteRole() {
+
+};
+
+async function deleteDepartment() {
+    let department = await departmentPrompt("What department do you wish to remove?");
+
+    await connection.query(`DELETE FROM department WHERE name = ?`, [department], function(err, result) {
+        if (err) throw err;
+        console.log("Deleted employee");
+    });
+    promptUser();
 }
 
 
-
-
-// INQUIRER PROMPTS
+/**************************INQUIERER PROMPTS******************************/
 function textPrompt(question) {
     return inquirer.prompt({
         name: "value",
         type: "input",
         message: question
+    });
+};
+
+function numberPrompt(question) {
+    return inquirer.prompt({
+        name: "value",
+        type: "number",
+        message: question,
+        validate: function(input) {
+            if (!isNaN(input)) {
+                return true;
+            }
+            return "Please enter a number value."
+        }
     });
 };
 
@@ -143,6 +175,17 @@ async function employeePrompt(question) {
     return employeeName.value;
 }
 
+async function departmentPrompt(question) {
+    const allDepartmentNames = await getAllDepartmentsByName();
+    let departmentName = await inquirer.prompt({
+        name: "value",
+        type: "list",
+        message: question,
+        choices: allDepartmentNames
+    })
+    return departmentName.value;
+}
+
 async function rolePrompt(question) {
     const allRoles = await getAllRoles();
     let role = await inquirer.prompt({
@@ -155,7 +198,7 @@ async function rolePrompt(question) {
 };
 
 
-//get functions
+/**************************GET FUNCTIONS******************************/
 function getAllRoles() {
     return new Promise(function (resolve, reject) {
         connection.query("SELECT * FROM role", function (err, response) {
@@ -177,6 +220,20 @@ function getAllEmployeesByName() {
             let selectionArr = [];
             for (let i = 0; i < response.length; i++) {
                 selectionArr.push(response[i].last_name);
+            }
+            resolve(selectionArr);
+            console.log(selectionArr);
+        });
+    });
+};
+
+function getAllDepartmentsByName() {
+    return new Promise(function (resolve, reject) {
+        connection.query("SELECT * FROM department", function (err, response) {
+            if (err) reject(err);
+            let selectionArr = [];
+            for (let i = 0; i < response.length; i++) {
+                selectionArr.push(response[i].name);
             }
             resolve(selectionArr);
             console.log(selectionArr);
