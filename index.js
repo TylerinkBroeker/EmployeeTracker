@@ -49,7 +49,7 @@ function promptUser() {
         } else if(answer.action === "Add Roles") {
             addRole();
         } else if(answer.action === "Add Departments") {
-            addDepartment();
+            addDepartment(); //works
         } else if(answer.action === "UPDATE") {
             console.log("update: Departments, roles or employees");
         } else if(answer.action === "Delete Employee") {
@@ -57,7 +57,7 @@ function promptUser() {
         } else if(answer.action === "Delete Role") {
             deleteRole();
         } else if(answer.action === "Delete Department") {
-            deleteDepartment();
+            deleteDepartment();//works
         } else if(answer.action === "Exit Program") {
             connection.end();
         }
@@ -65,7 +65,7 @@ function promptUser() {
 
 };
 
-//View table
+//View tables
 function view(tableType) {
     let query = "SELECT * FROM " + tableType;
     connection.query(query, function(err, response) {
@@ -75,7 +75,7 @@ function view(tableType) {
     });
 }; 
 
-//Add Employees
+/**************************ADD FUNCTIONS******************************/
 async function addEmployees() {
     let firstName = await textPrompt("First Name:");
     let lastName = await textPrompt("Last Name:");
@@ -93,10 +93,17 @@ async function addEmployees() {
 async function addRole() {
     let roleName = await textPrompt("New Role Title:");
     let salary = await numberPrompt("Salary for Role:")
+    let dept = await departmentPrompt("Department for New Role:");
+    let idReturned = await getDepartmentIdByName(dept);
+
+    console.log(roleName, salary, dept, idReturned);
+
+    await connection.query("INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)", [roleName.value, salary.value, idReturned], (err, result) => {
+        if (err) res.status(500);
+        console.log(result);
+    });
     
-    //inquirer list input for department
-    //add to table db
-    console.log(roleName, salary);
+    promptUser();
 }
 
 async function addDepartment() {
@@ -114,11 +121,10 @@ async function updateRoles() {
     //inquirer prompt user to overwrite part of role that user wishes to change
 }
 
-//Delete employees
+/**************************DELETE FUNCTIONS******************************/
 async function deleteEmployees() {
     let employee = await employeePrompt("What employee do you wish to remove?");
-    //maybe get employee by id, i had more luck deleting by id
-    console.log(employee);
+
     await connection.query(`DELETE FROM employee WHERE last_name = ?`, [employee], function(err, result) {
         if (err) throw err;
         console.log("Deleted employee");
@@ -127,7 +133,13 @@ async function deleteEmployees() {
 };
 
 async function deleteRole() {
+    let role = await rolePrompt("What employee do you wish to remove?");
 
+    await connection.query(`DELETE FROM role WHERE title = ?`, [role], function(err, result) {
+        if (err) throw err;
+        console.log("Deleted role");
+    });
+    promptUser();
 };
 
 async function deleteDepartment() {
@@ -135,11 +147,10 @@ async function deleteDepartment() {
 
     await connection.query(`DELETE FROM department WHERE name = ?`, [department], function(err, result) {
         if (err) throw err;
-        console.log("Deleted employee");
+        console.log("Deleted department");
     });
     promptUser();
 }
-
 
 /**************************INQUIERER PROMPTS******************************/
 function textPrompt(question) {
@@ -171,7 +182,7 @@ async function employeePrompt(question) {
         type: "list",
         message: question,
         choices: allEmployeeNames
-    })
+    });
     return employeeName.value;
 }
 
@@ -196,7 +207,6 @@ async function rolePrompt(question) {
     })
     return role.value;
 };
-
 
 /**************************GET FUNCTIONS******************************/
 function getAllRoles() {
@@ -241,6 +251,21 @@ function getAllDepartmentsByName() {
     });
 };
 
+function getDepartmentIdByName(givenDept) {
+    return new Promise(function (resolve, reject) {
+        connection.query("SELECT * FROM department", function (err, response) {
+            if (err) reject(err);
+            let resolution
+            for (let i = 0; i < response.length; i++) {
+                if (response[i].name === givenDept) {
+                    resolution = response[i].id;
+                };
+            };  
+            resolve(resolution);
+        });
+    }); 
+}
+
 function getRoleIdByName(givenTitle) {
     return new Promise(function (resolve, reject) {
         connection.query("SELECT * FROM role", function (err, response) {
@@ -253,5 +278,5 @@ function getRoleIdByName(givenTitle) {
             };  
             resolve(resolution);
         });
-    })        
+    });       
 };
