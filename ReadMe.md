@@ -3,7 +3,7 @@
   [![GitHub license](https://img.shields.io/badge/license-None-blue.svg)](https://shields.io/)
 
 # Employee Management System
-## Tylerinkbroeker
+## Tyler Ink Broeker
 ## Description
 With this app you can track, add and delete employees, roles and departments, as well as updating employee roles.
 ## Table of Contents
