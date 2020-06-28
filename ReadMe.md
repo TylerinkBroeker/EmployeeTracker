@@ -22,7 +22,7 @@ With this app you can track, add and delete employees, roles and departments, as
 ## Installation:
 npm install
 ## Usage:
-To run this application, use 
+To run this application, use node index.js
 ## License:
 None
 ## Contributing:
